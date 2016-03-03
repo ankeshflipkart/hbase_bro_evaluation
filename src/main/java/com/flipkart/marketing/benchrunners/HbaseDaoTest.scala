@@ -24,8 +24,9 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
 
   var hConnectionHelper = getHBaseConnHelper
   val tblName = "cross_pivot_instances"
-  val executor = Executors.newFixedThreadPool(9)
   var registry: MetricsRegistry = null
+  val maxThreadCount = 50
+  val executor = Executors.newFixedThreadPool(maxThreadCount)
 
 
   override def runBench() = {
@@ -34,8 +35,9 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
     val registry = new MetricsRegistry()
     val exceptionCounter = registry.newCounter(this.getClass, "HBase-Exception-Counter")
     ConsoleReporter.enable(registry, 20, TimeUnit.SECONDS)
-    while(threadNumber < 5) {
+    while(threadNumber < maxThreadCount) {
       executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, exceptionCounter, registry))
+      println(s"Spawned thread: $threadNumber")
       threadNumber = threadNumber + 1
     }
   }

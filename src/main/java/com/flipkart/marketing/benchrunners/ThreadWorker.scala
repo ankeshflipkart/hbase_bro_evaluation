@@ -23,7 +23,7 @@ class ThreadWorker extends HbaseDao with Bench with Runnable{
   var threadNumber = 0
   var exceptionCounter: Counter = null
   var registry: MetricsRegistry = null
-  var rowKeys = List("ABC1YTGFEE_HIJKMNOP='ZYXUVW'")
+  var rowKeys = List("ABC1YT")
 
   def this( hConnection: HTableFactoryWrapper , threadNumber : Int, _eCounter: Counter, _registry : MetricsRegistry) {
     this()
@@ -54,7 +54,7 @@ class ThreadWorker extends HbaseDao with Bench with Runnable{
 
       val ctxFullScan  = fullScanTimer.time()
 
-      while (hasNextValue && count < 100) {
+      while (hasNextValue) {
         val ctxGetNext = getNextTimer.time()
         try {
           iterator.next()

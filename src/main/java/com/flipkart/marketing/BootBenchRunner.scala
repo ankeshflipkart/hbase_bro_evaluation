@@ -13,8 +13,8 @@ object BootBenchRunner {
     val conn : HbaseDaoTest = new HbaseDaoTest
 
 //    conn.rangeScan(new MetricsRegistry())
-//    conn.runBench()
-    conn.runIngestor()
+    conn.runBench()
+//    conn.runIngestor()
   }
 
 }
