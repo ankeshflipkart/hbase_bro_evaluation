@@ -21,16 +21,14 @@ class ThreadWorker extends HbaseDao with Bench with Runnable{
 
   var hConnectionHelper = getHBaseConnHelper
   var threadNumber = 0
-  var timer: Timer = null
   var exceptionCounter: Counter = null
   var registry: MetricsRegistry = null
-  var rowKeys = List("TSRQPLCDEFG_HIJKMNOP")
+  var rowKeys = List("ABC1YTGFEE_HIJKMNOP='ZYXUVW'")
 
-  def  this( hConnection: HTableFactoryWrapper , threadNumber : Int, _timer: Timer, _eCounter: Counter, _registry : MetricsRegistry) {
+  def this( hConnection: HTableFactoryWrapper , threadNumber : Int, _eCounter: Counter, _registry : MetricsRegistry) {
     this()
     this.hConnectionHelper = hConnection
     this.threadNumber = threadNumber
-    this.timer = _timer
     this.exceptionCounter = _eCounter
     this.registry = _registry
   }
@@ -39,33 +37,39 @@ class ThreadWorker extends HbaseDao with Bench with Runnable{
   override def run(): Unit = {
     for (index <- 0 to rowKeys.size)
     {
-      val timerR = registry.newTimer(this.getClass, "HBase-Range-Timer")
-      val timerIter = registry.newTimer(this.getClass, "HBase-IteratorGet-Timer")
-      val timerScan = registry.newTimer(this.getClass, "HBase-Scan-Timer")
+      val fullScanTimer = registry.newTimer(this.getClass, "HBase-Full-Scan-Timer")
+      val getNextTimer = registry.newTimer(this.getClass, "HBase-Get-Next-Timer")
+      val queryTimer = registry.newTimer(this.getClass, "HBase-Query-Timer")
       implicit var h = hConnectionHelper.getTableInterface(tblName)
 
-      var ctx: TimerContext = null
-      ctx = timerR.time()
-
-      var ctxScan: TimerContext = null
-      ctxScan = timerScan.time()
       val scan: Scan = new Scan(Bytes.toBytes(rowKeys(index)), Bytes.toBytes(rowKeys(index)+"~"))
+
+      val ctxRangeQuery = queryTimer.time()
       val rs: ResultScanner = h.getScanner(scan)
-      ctxScan.stop()
-      val iter = rs.iterator()
+      ctxRangeQuery.stop()
 
-
-      var hasNextValue = iter.hasNext
+      val iterator = rs.iterator()
+      var hasNextValue = iterator.hasNext
       var count = 0
+
+      val ctxFullScan  = fullScanTimer.time()
+
       while (hasNextValue && count < 100) {
-        var ctxIter: TimerContext = null
-        ctxIter = timerIter.time()
-        iter.next()
-        hasNextValue = iter.hasNext
-        ctxIter.stop()
+        val ctxGetNext = getNextTimer.time()
+        try {
+          iterator.next()
+          hasNextValue = iterator.hasNext
+          ctxGetNext.stop()
+        } catch {
+          case e: Exception =>
+            ctxGetNext.stop()
+            println("Exception encountered during iteration" + e.toString)
+            exceptionCounter.inc()
+        }
         count += 1
       }
-      ctx.stop()
+
+      ctxFullScan.stop()
     }
   }
 

@@ -31,15 +31,11 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
   override def runBench() = {
     implicit var h = hConnectionHelper.getTableInterface(tblName)
     var threadNumber = 1
-
     val registry = new MetricsRegistry()
-    val timer = registry.newTimer(this.getClass, "HBase-Range-Timer")
-
     val exceptionCounter = registry.newCounter(this.getClass, "HBase-Exception-Counter")
     ConsoleReporter.enable(registry, 20, TimeUnit.SECONDS)
-
-    while(true) {
-      executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, timer, exceptionCounter, registry))
+    while(threadNumber < 5) {
+      executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, exceptionCounter, registry))
       threadNumber = threadNumber + 1
     }
   }
