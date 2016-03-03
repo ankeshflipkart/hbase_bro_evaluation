@@ -24,7 +24,7 @@ class ThreadIngestor extends HbaseDao with Bench with Runnable{
   var timer: Timer = null
   var exceptionCounter: Counter = null
   var registry: MetricsRegistry = null
-  var rowKeys = List("ABCNYTGFEE_HIJKMNOP='ZYXUVW'" , "DEFKRJBTNSRA_EAJKNRSV='ARS'","GHIAEFJKNR_JRKNA='FAEEFA","JKLASDE_AEJKNV='FEAB'","MNORMLKBSAVE_EAVAV='FEAF'","PQRJNGSSLBS_VRSJKK='GNDRE","RSTTKBLSQB_RSBSR='BTDB","UVWKJRSV_RSBJK='ESGGAE'","XYZJRNSBE_BRSJ='BTSSQ'")
+  var rowKeys = List("ABCNYTGFEE_HIJKMNOP='ZYXUVW'" , "DEFNKRJBTNSRA_EAJKNRSV='ARS'","GHINAEFJKNR_JRKNA='FAEEFA","JKLNASDE_AEJKNV='FEAB'","MOPNRMLKBSAVE_EAVAV='FEAF'","PQRNJNGSSLBS_VRSJKK='GNDRE","RSTNTKBLSQB_RSBSR='BTDB","UVWNJRSV_RSBJK='ESGGAE'","XYZNJRNSBE_BRSJ='BTSSQ'","OKLNYTGFEE_HIJKMNOP='ZYXUVW'")
 
   def  this( hConnection: HTableFactoryWrapper , threadNumber : Int, _timer: Timer, _eCounter: Counter, _registry : MetricsRegistry) {
     this()
@@ -42,23 +42,18 @@ class ThreadIngestor extends HbaseDao with Bench with Runnable{
       for (i <- 0 to 30000) {
         var ctx: TimerContext = null
         try {
-          println("Connection Established FOR thREAD  : " + threadNumber)
-          while (true) {
-            val rowKeyRand = UUID.randomUUID().toString
-            val rowKey = rowKeys(threadNumber-1) + rowKeyRand
-            val data: RowData = Map[String, Map[String, Array[Byte]]](
-              "d" -> Map[String, Array[Byte]](
-                "colq" -> "f".getBytes(CharEncoding.UTF_8)
-              )
+          val rowKeyRand = UUID.randomUUID().toString
+          val rowKey = rowKeys(i%10).replace("N",threadNumber.toString) + rowKeyRand
+          val data: RowData = Map[String, Map[String, Array[Byte]]](
+            "d" -> Map[String, Array[Byte]](
+              "colq" -> "f".getBytes(CharEncoding.UTF_8)
             )
+          )
 
-            ctx = timer.time()
+          ctx = timer.time()
+          addRow(rowKey, data)
 
-            addRow(rowKey, data)
-
-            ctx.stop()
-          }
-
+          ctx.stop()
 
         } catch {
           case e: Exception =>
