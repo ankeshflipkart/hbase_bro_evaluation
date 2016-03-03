@@ -80,4 +80,6 @@ libraryDependencies ++= Seq(
 */
 )
 
+assemblyMergeStrategy in assembly := CustomBuild.mergeStrategy
+
 mainClass in (Compile, run) := Some("com.flipkart.marketing.BootBenchRunner")
