@@ -23,53 +23,63 @@ class ThreadWorker extends HbaseDao with Bench with Runnable{
   var threadNumber = 0
   var exceptionCounter: Counter = null
   var registry: MetricsRegistry = null
-  var rowKeys = List("ABC1YT")
+  var maxThreadCount: Int = 0
+  //var rowKeys = List("ABC1YT")
+  var rowKeys = List("ABCNYTGFEE_HIJKMNOP" , "DEFNKRJBTNSRA_EAJKNRSV","GHINAEFJKNR_JRKNA","JKLNASDE_AEJKNV","MOPNRMLKBSAVE_EAVAV","PQRNJNGSSLBS_VRSJKK","RSTNTKBLSQB_RSBSR","UVWNJRSV_RSBJK","XYZNJRNSBE_BRSJ","OKLNYTGFEE_HIJKMNO")
 
-  def this( hConnection: HTableFactoryWrapper , threadNumber : Int, _eCounter: Counter, _registry : MetricsRegistry) {
+  def this( hConnection: HTableFactoryWrapper , threadNumber : Int, maxThreadCount: Int, _eCounter: Counter, _registry : MetricsRegistry) {
     this()
     this.hConnectionHelper = hConnection
     this.threadNumber = threadNumber
     this.exceptionCounter = _eCounter
     this.registry = _registry
+    this.maxThreadCount = maxThreadCount;
   }
   val tblName = "cross_pivot_instance_test"
 
   override def run(): Unit = {
+    val fullScanTimer = registry.newTimer(this.getClass, "HBase-Full-Scan-Timer")
+    val getNextTimer = registry.newTimer(this.getClass, "HBase-Get-Next-Timer")
+    val queryTimer = registry.newTimer(this.getClass, "HBase-Query-Timer")
+    implicit var h = hConnectionHelper.getTableInterface(tblName)
+
     for (index <- 0 to rowKeys.size)
     {
-      val fullScanTimer = registry.newTimer(this.getClass, "HBase-Full-Scan-Timer")
-      val getNextTimer = registry.newTimer(this.getClass, "HBase-Get-Next-Timer")
-      val queryTimer = registry.newTimer(this.getClass, "HBase-Query-Timer")
-      implicit var h = hConnectionHelper.getTableInterface(tblName)
+      for (i <- 1 to maxThreadCount) {
+        val starRowKey = rowKeys(index).replace("N", i.toString)
+        val endRowKey = starRowKey + "~"
+        val scan: Scan = new Scan(Bytes.toBytes(starRowKey), Bytes.toBytes(endRowKey))
+        //We've to set the prefetch count, and make sure this doesn't populate the blockCache
+        scan.setCaching(5000)
+        scan.setCacheBlocks(false)
 
-      val scan: Scan = new Scan(Bytes.toBytes(rowKeys(index)), Bytes.toBytes(rowKeys(index)+"~"))
+        val ctxRangeQuery = queryTimer.time()
+        val rs: ResultScanner = h.getScanner(scan)
+        ctxRangeQuery.stop()
 
-      val ctxRangeQuery = queryTimer.time()
-      val rs: ResultScanner = h.getScanner(scan)
-      ctxRangeQuery.stop()
+        val iterator = rs.iterator()
+        var hasNextValue = iterator.hasNext
+        var count = 0
 
-      val iterator = rs.iterator()
-      var hasNextValue = iterator.hasNext
-      var count = 0
+        val ctxFullScan  = fullScanTimer.time()
 
-      val ctxFullScan  = fullScanTimer.time()
-
-      while (hasNextValue) {
-        val ctxGetNext = getNextTimer.time()
-        try {
-          iterator.next()
-          hasNextValue = iterator.hasNext
-          ctxGetNext.stop()
-        } catch {
-          case e: Exception =>
+        while (hasNextValue) {
+          val ctxGetNext = getNextTimer.time()
+          try {
+            iterator.next()
+            hasNextValue = iterator.hasNext
             ctxGetNext.stop()
-            println("Exception encountered during iteration" + e.toString)
-            exceptionCounter.inc()
+          } catch {
+            case e: Exception =>
+              ctxGetNext.stop()
+              println("Exception encountered during iteration" + e.toString)
+              exceptionCounter.inc()
+          }
+          count += 1
         }
-        count += 1
+        ctxFullScan.stop()
+        println(s"Thread ${Thread.currentThread().getName}: Completed RangeScan for $starRowKey")
       }
-
-      ctxFullScan.stop()
     }
   }
 

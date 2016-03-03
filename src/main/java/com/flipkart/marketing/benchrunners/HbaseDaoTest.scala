@@ -36,7 +36,7 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
     val exceptionCounter = registry.newCounter(this.getClass, "HBase-Exception-Counter")
     ConsoleReporter.enable(registry, 20, TimeUnit.SECONDS)
     while(threadNumber < maxThreadCount) {
-      executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, exceptionCounter, registry))
+      executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, maxThreadCount, exceptionCounter, registry))
       println(s"Spawned thread: $threadNumber")
       threadNumber = threadNumber + 1
     }
