@@ -23,9 +23,9 @@ import org.apache.hadoop.hbase.util.Bytes
 class HbaseDaoTest extends HbaseDao with Bench with Runnable{
 
   var hConnectionHelper = getHBaseConnHelper
-  val tblName = "cross_pivot_instances"
+  val tblName = "w3_bro_EntityState"
   var registry: MetricsRegistry = null
-  val maxThreadCount = 50
+  val maxThreadCount = 2
   val executor = Executors.newFixedThreadPool(maxThreadCount)
 
 
@@ -34,7 +34,7 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
     var threadNumber = 1
     val registry = new MetricsRegistry()
     val exceptionCounter = registry.newCounter(this.getClass, "HBase-Exception-Counter")
-    ConsoleReporter.enable(registry, 20, TimeUnit.SECONDS)
+    ConsoleReporter.enable(registry, 1000000000, TimeUnit.SECONDS)
     while(threadNumber < maxThreadCount) {
       executor.submit(new ThreadWorker(hConnectionHelper, threadNumber, maxThreadCount, exceptionCounter, registry))
       println(s"Spawned thread: $threadNumber")
@@ -107,7 +107,7 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
 
   def getHBaseConnHelper = {
 
-    val configServiceHost = "10.47.0.101"
+    val configServiceHost = ""
     val configServicePort = "80"
     val hConfProps = new Properties()
 /*
@@ -119,11 +119,7 @@ class HbaseDaoTest extends HbaseDao with Bench with Runnable{
     }
 */
 
-    val zookeeperQuorum = "10.33.17.204,10.33.209.206,10.33.193.227"
 
-
-    hConfProps.setProperty("hbase.zookeeper.quorum", zookeeperQuorum)
-    hConfProps.setProperty("hbase.zookeeper.property.clientPort", "2181")
 
     val hConfig = ConfigFactory.parseProperties(hConfProps)
 

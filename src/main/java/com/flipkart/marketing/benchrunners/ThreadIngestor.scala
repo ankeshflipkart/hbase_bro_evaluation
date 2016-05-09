@@ -1,15 +1,13 @@
 package com.flipkart.marketing.benchrunners
 
-import java.util.{UUID, Properties}
+import java.util.Properties
 
 import com.flipkart.marketing.commons.behaviours.Bench
 import com.flipkart.marketing.commons.connections.ConnectionProvider
 import com.flipkart.marketing.commons.factories.HTableFactoryWrapper
 import com.flipkart.marketing.dao.HbaseDao
-import com.flipkart.marketing.dao.HbaseDao.RowData
 import com.typesafe.config.ConfigFactory
-import com.yammer.metrics.core.{TimerContext, Counter, MetricsRegistry, Timer}
-import org.apache.commons.lang.CharEncoding
+import com.yammer.metrics.core.{Counter, MetricsRegistry, Timer}
 
 /**
  *
@@ -38,38 +36,38 @@ class ThreadIngestor extends HbaseDao with Bench with Runnable{
 
 
     override def run(): Unit = {
-      implicit var h = hConnectionHelper.getTableInterface(tblName)
-      for (i <- 0 to 30000) {
-        var ctx: TimerContext = null
-        try {
-          val rowKeyRand = UUID.randomUUID().toString
-          val rowKey = rowKeys(i%10).replace("N",threadNumber.toString) + rowKeyRand
-          val data: RowData = Map[String, Map[String, Array[Byte]]](
-            "d" -> Map[String, Array[Byte]](
-              "colq" -> "f".getBytes(CharEncoding.UTF_8)
-            )
-          )
-
-          ctx = timer.time()
-          addRow(rowKey, data)
-
-          ctx.stop()
-
-        } catch {
-          case e: Exception =>
-            ctx.stop()
-            exceptionCounter.inc()
-            println(s"E: ${e.getStackTrace}")
-        } finally {
-          hConnectionHelper.releaseTableInterface(h)
-        }
-      }
+//      implicit var h = hConnectionHelper.getTableInterface(tblName)
+//      for (i <- 0 to 30000) {
+//        var ctx: TimerContext = null
+//        try {
+//          val rowKeyRand = UUID.randomUUID().toString
+//          val rowKey = rowKeys(i%10).replace("N",threadNumber.toString) + rowKeyRand
+//          val data: RowData = Map[String, Map[String, Array[Byte]]](
+//            "d" -> Map[String, Array[Byte]](
+//              "colq" -> "f".getBytes(CharEncoding.UTF_8)
+//            )
+//          )
+//
+//          ctx = timer.time()
+//          addRow(rowKey, data)
+//
+//          ctx.stop()
+//
+//        } catch {
+//          case e: Exception =>
+//            ctx.stop()
+//            exceptionCounter.inc()
+//            println(s"E: ${e.getStackTrace}")
+//        } finally {
+//          hConnectionHelper.releaseTableInterface(h)
+//        }
+//      }
     }
 
 
   def getHBaseConnHelper = {
 
-    val configServiceHost = "10.47.0.101"
+    val configServiceHost = ""
     val configServicePort = "80"
     val hConfProps = new Properties()
     /*
@@ -81,7 +79,7 @@ class ThreadIngestor extends HbaseDao with Bench with Runnable{
         }
     */
 
-    val zookeeperQuorum = "10.33.17.204,10.33.209.206,10.33.193.227"
+    val zookeeperQuorum = ""
 
 
     hConfProps.setProperty("hbase.zookeeper.quorum", zookeeperQuorum)

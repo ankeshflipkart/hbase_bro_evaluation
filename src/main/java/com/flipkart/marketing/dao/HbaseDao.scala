@@ -1,18 +1,17 @@
 package com.flipkart.marketing.dao
 
 import java.io.IOException
+import java.util
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.fasterxml.jackson.module.scala.experimental.ScalaObjectMapper
-import com.flipkart.marketing.dao.HbaseDao.{ColumnData, RowData}
+import com.flipkart.marketing.dao.HbaseDao.RowData
+import com.google.common.base.CharMatcher
 import org.apache.commons.codec.CharEncoding
 import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
-
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
 
 /**
  *
@@ -109,38 +108,60 @@ trait HbaseDao {
 //    rowMap
 //  }
 //
+
+  var counter : Int = 0
   @throws[IOException]
-  def fetchMultiRows(rowKeys: List[String], colFamilies: List[String])(implicit hTableInterface: HTableInterface): Map[String, RowData] = {
-    val gets = ListBuffer[Get]()
-    rowKeys.map(rowKey => {
-      val get = new Get(rowKey.getBytes(CharEncoding.UTF_8))
-      colFamilies.foreach(cF => get.addFamily(cF.getBytes(CharEncoding.UTF_8)))
-      gets += get
-    })
-    val rowResults = hTableInterface.get(gets.toList.asJava)
-    var rowMap = Map[String,RowData]()
-    for (result <- rowResults) {
-      rowMap += result.getRow.toString -> getRowData(result, colFamilies)
+  def fetchMultiRows(rowKeys: String, colFamilies: List[String])(implicit hTableInterface: HTableInterface): Unit = {
+    val gets = new Get(Bytes.toBytes(rowKeys))
+    val rowResults = hTableInterface.get(gets)
+    var map: Map[String, String] = Map()
+    val fMap: util.NavigableMap[Array[Byte], Array[Byte]] = rowResults.getFamilyMap(Bytes.toBytes("d"))
+    val iterator = fMap.keySet().iterator()
+    while (iterator.hasNext) {
+      val key = iterator.next()
+
+      map += ((Bytes.toString(key)) -> Bytes.toString(fMap.get(key)))
     }
-    rowMap
+//  val global = map.get("global").get
+  val check = CharMatcher.ASCII.matchesAllOf(map.get("global").get)
+  check match {
+    case true =>
+    case false =>
+      counter = counter + 1
+      println(map.get("global").get.length + "counter = >" + counter)
   }
 
 
-  private def getRowData(result: Result, colFamilies: List[String]): RowData = {
-    colFamilies.flatMap { cF =>
-      val optResult = result.getFamilyMap(cF.getBytes(CharEncoding.UTF_8))
-      Option(optResult).map(cFResult => {
-        val cQIterator = cFResult.keySet().iterator()
-        val cFData: ColumnData = cQIterator.asScala.map(colQualifier => colQualifier.toString -> cFResult.get(colQualifier)).toMap
-        cF -> cFData
-      })
-    }.toMap
+//    val mapper = new ObjectMapper()
+//    val map_2 = mapper.readValue(map.get("global").get, util.Map[String, Any].getClass)
+//  val index = global.indexOf("order_external_id")
+//  val part_1 = global.substring(index + 22, index + 45)
+//  print(rowKeys + "  " + part_1)
+
+//  print(global)
+//  (map.get("global"), new TypeReference[Map[String, String]](){})
+  //  m.asInstanceOf[Map[String, Any]].get("ordered")
+//  map.get("global").asInstanceOf[Map[Any,Any]].get("ordered").asInstanceOf[Map[Any,Any]].get("data").asInstanceOf[Map[Any,Any]].get("Order").asInstanceOf[Map[Any,Any]].get("order_external_id")
   }
+
+
+//  private def getRowData(result: Result, colFamilies: List[String]): RowData = {
+//    colFamilies.flatMap { cF =>
+//      val optResult = result.getFamilyMap(cF.getBytes(CharEncoding.UTF_8))
+//      Option(optResult).map(cFResult => {
+//        val cQIterator = cFResult.keySet().iterator()
+//        val cFData: ColumnData = cQIterator.asScala.map(colQualifier => colQualifier.toString -> cFResult.get(colQualifier)).toMap
+//        cF -> cFData
+//      })
+//    }.toMap
+//  }
 
 
 }
 
 object HbaseDao {
+
+
 
   type ColumnData = scala.collection.immutable.Map[String, Array[Byte]]
   // ColumnQualifer -> Data
